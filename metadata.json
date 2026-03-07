@@ -1,0 +1,5 @@
+{
+  "name": "Scan & Go Shopping",
+  "description": "A seamless shopping experience allowing users to scan QR codes on clothes and checkout instantly.",
+  "requestFramePermissions": ["camera"]
+}
