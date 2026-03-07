@@ -66,6 +66,15 @@ export default function App() {
     setIsCheckingOut(true);
     
     try {
+      // Client-side fallback for demo checkout
+      if (paymentDetails.total > 0) {
+        // Simulate network delay
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        setOrderComplete(true);
+        setCart([]);
+        return;
+      }
+
       const response = await fetch('/api/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

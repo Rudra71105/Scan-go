@@ -20,6 +20,22 @@ export default function Scanner({ onProductScanned }: ScannerProps) {
     setLoading(true);
     setError(null);
     try {
+      // Client-side fallback for demo products (useful for Vercel/Static deployments)
+      const demoProducts: Record<string, Product> = {
+        'CLOTH-001': { id: 'CLOTH-001', name: 'Premium Polo T-shirt', price: 1499, image_url: 'https://picsum.photos/seed/polo/400/600', description: 'Classic fit premium cotton polo t-shirt.' },
+        'CLOTH-002': { id: 'CLOTH-002', name: 'Vintage Denim Jacket', price: 4499, image_url: 'https://picsum.photos/seed/denim-jacket/400/600', description: 'Vintage wash denim jacket with metal buttons.' },
+        'CLOTH-003': { id: 'CLOTH-003', name: 'Classic Blue Jeans', price: 2499, image_url: 'https://picsum.photos/seed/jeans/400/600', description: 'Durable and stylish classic blue denim jeans.' },
+        'CLOTH-004': { id: 'CLOTH-004', name: 'Oversized Hoodie', price: 1999, image_url: 'https://picsum.photos/seed/hoodie/400/600', description: 'Warm and cozy oversized cotton hoodie.' },
+      };
+
+      if (demoProducts[id]) {
+        // Simulate network delay
+        await new Promise(resolve => setTimeout(resolve, 500));
+        onProductScanned(demoProducts[id]);
+        setSearchId('');
+        return true;
+      }
+
       const response = await fetch(`/api/products/${id}`);
       if (response.ok) {
         const product = await response.json();
