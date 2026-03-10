@@ -159,7 +159,12 @@ export default function Cart({ items, onUpdateQuantity, onRemove, onCheckout, is
                         <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
-                    <p className="text-emerald-600 font-bold text-sm mb-3">₹{item.price.toLocaleString('en-IN')}</p>
+                    <div className="flex items-baseline space-x-2 mb-3">
+                      <p className="text-emerald-600 font-bold text-lg">₹{(item.price * item.quantity).toLocaleString('en-IN')}</p>
+                      {item.quantity > 1 && (
+                        <p className="text-zinc-400 text-xs font-medium">₹{item.price.toLocaleString('en-IN')} each</p>
+                      )}
+                    </div>
                     <div className="flex items-center bg-zinc-50 w-fit rounded-xl p-1 border border-zinc-100">
                       <button 
                         onClick={() => onUpdateQuantity(item.id, -1)}

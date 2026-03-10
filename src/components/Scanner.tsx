@@ -127,7 +127,15 @@ export default function Scanner({ onProductScanned }: ScannerProps) {
         const devices = await Html5Qrcode.getCameras();
         if (devices && devices.length > 0) {
           setCameras(devices.map(d => ({ id: d.id, label: d.label })));
-          setSelectedCameraId(devices[0].id);
+          
+          // Prioritize back camera
+          const backCamera = devices.find(d => 
+            d.label.toLowerCase().includes('back') || 
+            d.label.toLowerCase().includes('environment') ||
+            d.label.toLowerCase().includes('rear')
+          );
+          
+          setSelectedCameraId(backCamera ? backCamera.id : devices[0].id);
         }
       } catch (err) {
         console.error("Failed to get cameras", err);
