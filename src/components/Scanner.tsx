@@ -13,32 +13,45 @@ export default function Scanner({ onProductScanned }: ScannerProps) {
   const [scanning, setScanning] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [lastScanned, setLastScanned] = useState<string | null>(null);
   const [searchId, setSearchId] = useState('');
-  const [showFileUpload, setShowFileUpload] = useState(false);
+  const [cameras, setCameras] = useState<Array<{id: string, label: string}>>([]);
+  const [selectedCameraId, setSelectedCameraId] = useState<string | null>(null);
   const html5QrCodeRef = useRef<Html5Qrcode | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const fetchProduct = async (id: string) => {
     setLoading(true);
     setError(null);
+    setLastScanned(id);
+    
     try {
-      // Clean up the ID (sometimes QR scanners add extra whitespace or prefixes)
-      const cleanId = id.trim().toUpperCase();
+      // Robust ID extraction
+      // 1. Try to find Product-X pattern anywhere in the string (handles URLs)
+      // 2. Fallback to trimmed uppercase
+      let cleanId = id.trim();
+      const productMatch = cleanId.match(/Product-\d+/i);
       
-      // Client-side fallback for demo products (useful for Vercel/Static deployments)
+      if (productMatch) {
+        cleanId = productMatch[0];
+        // Capitalize P but keep the rest
+        cleanId = 'Product-' + cleanId.split('-')[1];
+      }
+      
       const demoProducts: Record<string, Product> = {
-        'CLOTH-001': { id: 'CLOTH-001', name: 'Tshirt', price: 999, image_url: 'https://picsum.photos/seed/tshirt/400/600', description: 'Comfortable cotton T-shirt.' },
-        'CLOTH-002': { id: 'CLOTH-002', name: 'shirt', price: 1299, image_url: 'https://picsum.photos/seed/shirt/400/600', description: 'Formal button-down shirt.' },
-        'CLOTH-003': { id: 'CLOTH-003', name: 'denim jeans', price: 2499, image_url: 'https://picsum.photos/seed/jeans/400/600', description: 'Classic blue denim jeans.' },
-        'CLOTH-004': { id: 'CLOTH-004', name: 'socks', price: 299, image_url: 'https://picsum.photos/seed/socks/400/600', description: 'Soft cotton socks.' },
-        'CLOTH-005': { id: 'CLOTH-005', name: 'cargo', price: 1899, image_url: 'https://picsum.photos/seed/cargo/400/600', description: 'Multi-pocket cargo pants.' },
+        'Product-1': { id: 'Product-1', name: 'Tshirt', price: 999, image_url: 'https://picsum.photos/seed/tshirt/400/600', description: 'Comfortable cotton T-shirt.' },
+        'Product-2': { id: 'Product-2', name: 'shirt', price: 1299, image_url: 'https://picsum.photos/seed/shirt/400/600', description: 'Formal button-down shirt.' },
+        'Product-3': { id: 'Product-3', name: 'denim jeans', price: 2499, image_url: 'https://picsum.photos/seed/jeans/400/600', description: 'Classic blue denim jeans.' },
+        'Product-4': { id: 'Product-4', name: 'socks', price: 299, image_url: 'https://picsum.photos/seed/socks/400/600', description: 'Soft cotton socks.' },
+        'Product-5': { id: 'Product-5', name: 'cargo', price: 1899, image_url: 'https://picsum.photos/seed/cargo/400/600', description: 'Multi-pocket cargo pants.' },
       };
 
       if (demoProducts[cleanId]) {
-        // Simulate network delay
-        await new Promise(resolve => setTimeout(resolve, 500));
+        await new Promise(resolve => setTimeout(resolve, 600));
         onProductScanned(demoProducts[cleanId]);
         setSearchId('');
+        setError(null);
+        setLastScanned(null);
         return true;
       }
 
@@ -47,9 +60,11 @@ export default function Scanner({ onProductScanned }: ScannerProps) {
         const product = await response.json();
         onProductScanned(product);
         setSearchId('');
+        setError(null);
+        setLastScanned(null);
         return true;
       } else {
-        setError(`Product "${cleanId}" not found. Check the ID and try again.`);
+        setError(`Scanned: "${id}". No product found for ID "${cleanId}".`);
         return false;
       }
     } catch (err) {
@@ -68,11 +83,20 @@ export default function Scanner({ onProductScanned }: ScannerProps) {
     setError(null);
 
     try {
+      // Create a temporary element for file scanning if it doesn't exist
+      let hiddenReader = document.getElementById("qr-reader-hidden");
+      if (!hiddenReader) {
+        hiddenReader = document.createElement("div");
+        hiddenReader.id = "qr-reader-hidden";
+        hiddenReader.style.display = "none";
+        document.body.appendChild(hiddenReader);
+      }
+      
       const html5QrCode = new Html5Qrcode("qr-reader-hidden");
       const decodedText = await html5QrCode.scanFile(file, true);
       await fetchProduct(decodedText);
     } catch (err) {
-      setError("Could not find a valid QR code in this image. Please try a clearer photo.");
+      setError("Could not find a QR code in this image. Try a closer, clearer photo of the code.");
     } finally {
       setLoading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -98,6 +122,21 @@ export default function Scanner({ onProductScanned }: ScannerProps) {
   };
 
   useEffect(() => {
+    const getCameras = async () => {
+      try {
+        const devices = await Html5Qrcode.getCameras();
+        if (devices && devices.length > 0) {
+          setCameras(devices.map(d => ({ id: d.id, label: d.label })));
+          setSelectedCameraId(devices[0].id);
+        }
+      } catch (err) {
+        console.error("Failed to get cameras", err);
+      }
+    };
+    getCameras();
+  }, []);
+
+  useEffect(() => {
     if (scanning) {
       const startScanner = async () => {
         try {
@@ -105,20 +144,22 @@ export default function Scanner({ onProductScanned }: ScannerProps) {
           html5QrCodeRef.current = html5QrCode;
 
           const config = { 
-            fps: 20, 
+            fps: 30, 
             qrbox: (viewfinderWidth: number, viewfinderHeight: number) => {
               const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
-              const qrboxSize = Math.floor(minEdge * 0.7);
               return {
-                width: qrboxSize,
-                height: qrboxSize
+                width: Math.floor(minEdge * 0.8),
+                height: Math.floor(minEdge * 0.8)
               };
             },
-            aspectRatio: 1.0
+            aspectRatio: 1.0,
+            disableFlip: false
           };
 
+          const cameraConfig = selectedCameraId ? { deviceId: selectedCameraId } : { facingMode: "environment" };
+
           await html5QrCode.start(
-            { facingMode: "environment" },
+            cameraConfig,
             config,
             async (decodedText) => {
               const success = await fetchProduct(decodedText);
@@ -126,35 +167,37 @@ export default function Scanner({ onProductScanned }: ScannerProps) {
                 await stopScanner();
               }
             },
-            (errorMessage) => {
-              // Silent error for scanner
-            }
+            () => {} 
           );
         } catch (err) {
           console.error("Scanner failed to start", err);
-          setError("Could not access camera. Please ensure you have granted permissions. If you're in a preview, try opening the app in a new tab.");
+          setError("Camera access failed. This is common in previews. Please open the app in a NEW TAB to use the scanner.");
           setScanning(false);
         }
       };
 
-      // Small delay to ensure the #reader div is in the DOM
-      const timer = setTimeout(startScanner, 200);
+      const timer = setTimeout(startScanner, 300);
       return () => {
         clearTimeout(timer);
         stopScanner();
       };
     }
-  }, [scanning]);
+  }, [scanning, selectedCameraId]);
 
   return (
     <div className="flex flex-col items-center justify-center p-6 space-y-8 max-w-xl mx-auto">
-      {/* Hidden element for file scanning */}
       <div id="qr-reader-hidden" className="hidden"></div>
       
-      {/* Search Bar */}
-      <motion.form 
-        initial={{ opacity: 0, y: -10 }}
+      <motion.div 
+        initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
+        className="text-center space-y-2"
+      >
+        <h2 className="text-3xl font-black text-zinc-900 tracking-tight">Smart Scanner</h2>
+        <p className="text-zinc-500 font-medium">Scan a tag to add it to your bag instantly</p>
+      </motion.div>
+
+      <motion.form 
         onSubmit={handleSearch}
         className="w-full relative group"
       >
@@ -165,7 +208,7 @@ export default function Scanner({ onProductScanned }: ScannerProps) {
           type="text"
           value={searchId}
           onChange={(e) => setSearchId(e.target.value)}
-          placeholder="Search by Cloth ID (e.g. CLOTH-001)"
+          placeholder="Enter Product ID (e.g. Product-1)"
           className="w-full bg-white border-2 border-zinc-100 rounded-[2rem] py-5 pl-14 pr-32 focus:outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 transition-all shadow-sm text-zinc-800 font-medium"
         />
         <button 
@@ -173,15 +216,9 @@ export default function Scanner({ onProductScanned }: ScannerProps) {
           disabled={loading || !searchId.trim()}
           className="absolute right-2 top-2 bottom-2 bg-zinc-900 text-white px-6 rounded-[1.5rem] font-bold text-sm hover:bg-zinc-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Search'}
+          {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Add Item'}
         </button>
       </motion.form>
-
-      <div className="flex items-center w-full space-x-4">
-        <div className="h-px bg-zinc-200 flex-1" />
-        <span className="text-zinc-400 text-xs font-bold uppercase tracking-widest">OR</span>
-        <div className="h-px bg-zinc-200 flex-1" />
-      </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full">
         {!scanning ? (
@@ -189,21 +226,34 @@ export default function Scanner({ onProductScanned }: ScannerProps) {
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             onClick={() => setScanning(true)}
-            className="flex flex-col items-center justify-center w-full aspect-square bg-white border-2 border-dashed border-zinc-200 rounded-[3rem] hover:border-emerald-500 hover:bg-emerald-50/50 transition-all group relative overflow-hidden"
+            className="flex flex-col items-center justify-center w-full aspect-square bg-white border-2 border-zinc-100 rounded-[3rem] hover:border-emerald-500 hover:bg-emerald-50/50 transition-all group relative overflow-hidden shadow-sm"
           >
             <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
             <div className="w-16 h-16 bg-zinc-50 rounded-2xl flex items-center justify-center mb-4 group-hover:bg-emerald-100 group-hover:scale-110 transition-all">
               <Camera className="w-8 h-8 text-zinc-400 group-hover:text-emerald-600" />
             </div>
-            <span className="text-lg font-bold text-zinc-800 group-hover:text-emerald-700 text-center px-4">Live Camera Scanner</span>
-            <p className="text-zinc-400 text-xs mt-2">Scan tag in real-time</p>
+            <span className="text-lg font-bold text-zinc-800 group-hover:text-emerald-700 text-center px-4">Live Scanner</span>
+            <p className="text-zinc-400 text-xs mt-2">Use your camera</p>
           </motion.button>
         ) : (
           <div className="col-span-1 sm:col-span-2 w-full bg-white rounded-[2.5rem] shadow-2xl overflow-hidden relative border border-zinc-100">
             <div className="p-5 border-b flex justify-between items-center bg-zinc-50/50">
-              <div className="flex items-center space-x-2">
-                <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
-                <h3 className="font-bold text-zinc-800">Scanner Active</h3>
+              <div className="flex flex-col">
+                <div className="flex items-center space-x-2">
+                  <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
+                  <h3 className="font-bold text-zinc-800">Scanner Active</h3>
+                </div>
+                {cameras.length > 1 && (
+                  <select 
+                    value={selectedCameraId || ''} 
+                    onChange={(e) => setSelectedCameraId(e.target.value)}
+                    className="text-[10px] bg-transparent border-none text-zinc-500 focus:ring-0 p-0 mt-1 cursor-pointer"
+                  >
+                    {cameras.map(cam => (
+                      <option key={cam.id} value={cam.id}>{cam.label || `Camera ${cam.id}`}</option>
+                    ))}
+                  </select>
+                )}
               </div>
               <button 
                 onClick={stopScanner}
@@ -213,7 +263,18 @@ export default function Scanner({ onProductScanned }: ScannerProps) {
               </button>
             </div>
             
-            <div id="reader" className="w-full aspect-square bg-black"></div>
+            <div className="relative aspect-square bg-black">
+              <div id="reader" className="w-full h-full"></div>
+              {/* Viewfinder overlay */}
+              <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
+                <div className="w-[70%] aspect-square border-2 border-emerald-500/50 rounded-3xl relative">
+                  <div className="absolute -top-1 -left-1 w-6 h-6 border-t-4 border-l-4 border-emerald-500 rounded-tl-lg" />
+                  <div className="absolute -top-1 -right-1 w-6 h-6 border-t-4 border-r-4 border-emerald-500 rounded-tr-lg" />
+                  <div className="absolute -bottom-1 -left-1 w-6 h-6 border-b-4 border-l-4 border-emerald-500 rounded-bl-lg" />
+                  <div className="absolute -bottom-1 -right-1 w-6 h-6 border-b-4 border-r-4 border-emerald-500 rounded-br-lg" />
+                </div>
+              </div>
+            </div>
             
             <AnimatePresence>
               {loading && (
@@ -224,7 +285,7 @@ export default function Scanner({ onProductScanned }: ScannerProps) {
                   className="absolute inset-0 bg-white/90 backdrop-blur-sm flex flex-col items-center justify-center z-10"
                 >
                   <Loader2 className="w-12 h-12 text-emerald-500 animate-spin mb-4" />
-                  <p className="text-emerald-600 font-bold text-lg">Identifying Cloth...</p>
+                  <p className="text-emerald-600 font-bold text-lg">Processing...</p>
                 </motion.div>
               )}
             </AnimatePresence>
@@ -236,7 +297,7 @@ export default function Scanner({ onProductScanned }: ScannerProps) {
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             onClick={() => fileInputRef.current?.click()}
-            className="flex flex-col items-center justify-center w-full aspect-square bg-white border-2 border-dashed border-zinc-200 rounded-[3rem] hover:border-emerald-500 hover:bg-emerald-50/50 transition-all group relative overflow-hidden"
+            className="flex flex-col items-center justify-center w-full aspect-square bg-white border-2 border-zinc-100 rounded-[3rem] hover:border-emerald-500 hover:bg-emerald-50/50 transition-all group relative overflow-hidden shadow-sm"
           >
             <input 
               type="file" 
@@ -249,31 +310,54 @@ export default function Scanner({ onProductScanned }: ScannerProps) {
             <div className="w-16 h-16 bg-zinc-50 rounded-2xl flex items-center justify-center mb-4 group-hover:bg-emerald-100 group-hover:scale-110 transition-all">
               <QrCode className="w-8 h-8 text-zinc-400 group-hover:text-emerald-600" />
             </div>
-            <span className="text-lg font-bold text-zinc-800 group-hover:text-emerald-700 text-center px-4">Upload QR Image</span>
+            <span className="text-lg font-bold text-zinc-800 group-hover:text-emerald-700 text-center px-4">Upload Photo</span>
             <p className="text-zinc-400 text-xs mt-2">Pick from gallery</p>
           </motion.button>
         )}
       </div>
 
+      {lastScanned && !loading && (
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="w-full p-4 bg-zinc-100 rounded-2xl text-center"
+        >
+          <p className="text-[10px] text-zinc-500 uppercase font-bold tracking-widest mb-1">Last Scanned Raw Content</p>
+          <code className="text-xs font-mono text-zinc-800 break-all bg-white px-2 py-1 rounded border border-zinc-200">{lastScanned}</code>
+        </motion.div>
+      )}
+
       {error && (
         <motion.div 
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="w-full bg-red-50 border border-red-100 p-4 rounded-2xl flex flex-col items-center space-y-3"
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="w-full bg-red-50 border-2 border-red-100 p-6 rounded-[2rem] space-y-4"
         >
-          <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0">
-              <X className="w-4 h-4 text-red-500" />
+          <div className="flex items-start space-x-4">
+            <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0">
+              <X className="w-5 h-5 text-red-600" />
             </div>
-            <p className="text-red-600 font-medium text-sm">{error}</p>
+            <div className="flex-1">
+              <h4 className="font-bold text-red-900">Scanning Issue</h4>
+              <p className="text-red-700 text-sm mt-1">{error}</p>
+            </div>
           </div>
-          <button 
-            onClick={() => window.open(window.location.href, '_blank')}
-            className="flex items-center space-x-2 text-xs font-bold text-red-700 bg-red-100 px-4 py-2 rounded-xl hover:bg-red-200 transition-all"
-          >
-            <Camera className="w-3 h-3" />
-            <span>Open in New Tab</span>
-          </button>
+          
+          <div className="flex flex-col sm:flex-row gap-2">
+            <button 
+              onClick={() => window.open(window.location.href, '_blank')}
+              className="flex-1 flex items-center justify-center space-x-2 text-sm font-bold text-white bg-red-600 px-6 py-3 rounded-2xl hover:bg-red-700 transition-all shadow-lg shadow-red-200"
+            >
+              <Camera className="w-4 h-4" />
+              <span>Open in New Tab</span>
+            </button>
+            <button 
+              onClick={() => setError(null)}
+              className="flex-1 flex items-center justify-center space-x-2 text-sm font-bold text-red-700 bg-red-100 px-6 py-3 rounded-2xl hover:bg-red-200 transition-all"
+            >
+              <span>Dismiss</span>
+            </button>
+          </div>
         </motion.div>
       )}
 
@@ -283,7 +367,7 @@ export default function Scanner({ onProductScanned }: ScannerProps) {
           <span className="text-[10px] uppercase tracking-widest font-bold text-zinc-400">Quick Test IDs</span>
         </div>
         <div className="flex flex-wrap gap-2">
-          {['CLOTH-001', 'CLOTH-002', 'CLOTH-003', 'CLOTH-004', 'CLOTH-005'].map(id => (
+          {['Product-1', 'Product-2', 'Product-3', 'Product-4', 'Product-5'].map(id => (
             <button 
               key={id}
               onClick={() => fetchProduct(id)}

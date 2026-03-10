@@ -47,11 +47,11 @@ try {
 
 // Seed Data
 const seedProducts = [
-  { id: 'CLOTH-001', name: 'Tshirt', price: 999, image_url: 'https://picsum.photos/seed/tshirt/400/600', description: 'Comfortable cotton T-shirt.' },
-  { id: 'CLOTH-002', name: 'shirt', price: 1299, image_url: 'https://picsum.photos/seed/shirt/400/600', description: 'Formal button-down shirt.' },
-  { id: 'CLOTH-003', name: 'denim jeans', price: 2499, image_url: 'https://picsum.photos/seed/jeans/400/600', description: 'Classic blue denim jeans.' },
-  { id: 'CLOTH-004', name: 'socks', price: 299, image_url: 'https://picsum.photos/seed/socks/400/600', description: 'Soft cotton socks.' },
-  { id: 'CLOTH-005', name: 'cargo', price: 1899, image_url: 'https://picsum.photos/seed/cargo/400/600', description: 'Multi-pocket cargo pants.' },
+  { id: 'Product-1', name: 'Tshirt', price: 999, image_url: 'https://picsum.photos/seed/tshirt/400/600', description: 'Comfortable cotton T-shirt.' },
+  { id: 'Product-2', name: 'shirt', price: 1299, image_url: 'https://picsum.photos/seed/shirt/400/600', description: 'Formal button-down shirt.' },
+  { id: 'Product-3', name: 'denim jeans', price: 2499, image_url: 'https://picsum.photos/seed/jeans/400/600', description: 'Classic blue denim jeans.' },
+  { id: 'Product-4', name: 'socks', price: 299, image_url: 'https://picsum.photos/seed/socks/400/600', description: 'Soft cotton socks.' },
+  { id: 'Product-5', name: 'cargo', price: 1899, image_url: 'https://picsum.photos/seed/cargo/400/600', description: 'Multi-pocket cargo pants.' },
 ];
 
 // Use REPLACE instead of INSERT OR IGNORE to update existing data if needed
