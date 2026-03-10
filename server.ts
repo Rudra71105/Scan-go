@@ -8,41 +8,27 @@ import fs from "fs";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-fs.writeFileSync("server-log.txt", "Server starting...\n");
-
 const db = new Database("shopping.db");
 
 // Initialize Database
-try {
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS users (
-      id TEXT PRIMARY KEY,
-      name TEXT NOT NULL,
-      password TEXT NOT NULL,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    );
+db.exec(`
+  CREATE TABLE IF NOT EXISTS products (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    price REAL NOT NULL,
+    image_url TEXT,
+    description TEXT
+  );
 
-    CREATE TABLE IF NOT EXISTS products (
-      id TEXT PRIMARY KEY,
-      name TEXT NOT NULL,
-      price REAL NOT NULL,
-      image_url TEXT,
-      description TEXT
-    );
-
-    CREATE TABLE IF NOT EXISTS orders (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      user_id TEXT NOT NULL,
-      total REAL NOT NULL,
-      items TEXT NOT NULL,
-      payment_method TEXT,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    );
-  `);
-  fs.appendFileSync("server-log.txt", "Database initialized successfully\n");
-} catch (err: any) {
-  fs.appendFileSync("server-log.txt", `Database initialization error: ${err.message}\n`);
-}
+  CREATE TABLE IF NOT EXISTS orders (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id TEXT NOT NULL,
+    total REAL NOT NULL,
+    items TEXT NOT NULL,
+    payment_method TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
+`);
 
 // Seed Data
 const seedProducts = [
@@ -58,61 +44,20 @@ seedProducts.forEach(p => insertProduct.run(p.id, p.name, p.price, p.image_url, 
 
 async function startServer() {
   const app = express();
-  const PORT = 3000;
+  const PORT = process.env.PORT || 3000;
 
   app.use(express.json());
 
   // API Routes
-  app.get("/api/db-status", (req, res) => {
-    try {
-      const tables = db.prepare("SELECT name FROM sqlite_master WHERE type='table'").all();
-      res.json({ tables });
-    } catch (e: any) {
-      res.status(500).json({ error: e.message });
-    }
-  });
-
-  app.post("/api/signup", (req, res) => {
-    const { username, name, password } = req.body;
-    fs.appendFileSync("server-log.txt", `Signup attempt: ${username}\n`);
-    try {
-      const existingUser = db.prepare('SELECT * FROM users WHERE id = ?').get(username);
-      if (existingUser) {
-        fs.appendFileSync("server-log.txt", `Signup failed: User ${username} already exists\n`);
-        return res.status(400).json({ success: false, message: "Username already exists" });
-      }
-      db.prepare('INSERT INTO users (id, name, password) VALUES (?, ?, ?)').run(username, name, password);
-      fs.appendFileSync("server-log.txt", `Signup success: ${username}\n`);
-      res.json({ success: true, user: { id: username, name } });
-    } catch (err: any) {
-      fs.appendFileSync("server-log.txt", `Signup error: ${err.message}\n`);
-      res.status(500).json({ success: false, message: "Server error during signup" });
-    }
-  });
-
   app.post("/api/login", (req, res) => {
     const { username, password } = req.body;
-    fs.appendFileSync("server-log.txt", `Login attempt: ${username}\n`);
     
     // Legacy support for bit197
     if (username === "bit197" && password === "1234") {
-      fs.appendFileSync("server-log.txt", `Login success (legacy): ${username}\n`);
       return res.json({ success: true, user: { id: "bit197", name: "User 197" } });
     }
 
-    try {
-      const user = db.prepare('SELECT * FROM users WHERE id = ? AND password = ?').get(username, password);
-      if (user) {
-        fs.appendFileSync("server-log.txt", `Login success: ${username}\n`);
-        res.json({ success: true, user: { id: user.id, name: user.name } });
-      } else {
-        fs.appendFileSync("server-log.txt", `Login failed: Invalid credentials for ${username}\n`);
-        res.status(401).json({ success: false, message: "Invalid credentials" });
-      }
-    } catch (err: any) {
-      fs.appendFileSync("server-log.txt", `Login error: ${err.message}\n`);
-      res.status(500).json({ success: false, message: "Server error during login" });
-    }
+    res.status(401).json({ success: false, message: "Invalid credentials" });
   });
 
   app.get("/api/products/:id", (req, res) => {

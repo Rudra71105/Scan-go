@@ -8,9 +8,7 @@ interface LoginProps {
 }
 
 export default function Login({ onLogin }: LoginProps) {
-  const [isSignup, setIsSignup] = useState(false);
   const [username, setUsername] = useState('');
-  const [name, setName] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -21,53 +19,26 @@ export default function Login({ onLogin }: LoginProps) {
     setError('');
 
     try {
-      if (!isSignup) {
-        // Client-side fallback for demo credentials (useful for Vercel/Static deployments)
-        if (username === 'bit197' && password === '1234') {
-          onLogin({ id: 'bit197', name: 'User 197' });
-          return;
-        }
-
-        const response = await fetch('/api/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username, password }),
-        });
-
-        const contentType = response.headers.get('content-type');
-        if (response.ok) {
-          const data = await response.json();
-          onLogin(data.user);
-        } else {
-          if (contentType && contentType.includes('application/json')) {
-            const data = await response.json();
-            setError(data.message || 'Invalid username or password');
-          } else {
-            setError(`Server error: ${response.status} ${response.statusText}`);
-          }
-        }
-      } else {
-        const response = await fetch('/api/signup', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username, name, password }),
-        });
-
-        const contentType = response.headers.get('content-type');
-        if (response.ok) {
-          const data = await response.json();
-          onLogin(data.user);
-        } else {
-          if (contentType && contentType.includes('application/json')) {
-            const data = await response.json();
-            setError(data.message || 'Signup failed');
-          } else {
-            setError(`Server error: ${response.status} ${response.statusText}`);
-          }
-        }
+      // Client-side fallback for demo credentials (useful for Vercel/Static deployments)
+      if (username === 'bit197' && password === '1234') {
+        onLogin({ id: 'bit197', name: 'User 197' });
+        return;
       }
-    } catch (err: any) {
-      setError(`Connection error: ${err.message || 'Please check your internet'}`);
+
+      const response = await fetch('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        onLogin(data.user);
+      } else {
+        setError('Invalid username or password');
+      }
+    } catch (err) {
+      setError('Something went wrong. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -80,22 +51,12 @@ export default function Login({ onLogin }: LoginProps) {
         animate={{ opacity: 1, y: 0 }}
         className="w-full max-w-md bg-white rounded-[2.5rem] shadow-xl shadow-zinc-200/50 p-8 md:p-12 border border-zinc-100"
       >
-        {window.location.hostname.includes('vercel.app') && (
-          <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-2xl text-amber-800 text-sm font-medium">
-            ⚠️ You are using a Vercel preview which doesn't support the backend database. 
-            Please use the <a href="https://ais-dev-vmvt22ys2kskk54jrvmahu-229531018389.asia-east1.run.app" className="underline font-bold">Official App URL</a> for signup/login to work.
-          </div>
-        )}
         <div className="flex flex-col items-center mb-10">
           <div className="w-16 h-16 bg-emerald-500 rounded-2xl flex items-center justify-center mb-6 shadow-lg shadow-emerald-200">
             <ShoppingBag className="w-8 h-8 text-white" />
           </div>
-          <h1 className="text-3xl font-bold text-zinc-900 mb-2">
-            {isSignup ? 'Create Account' : 'Welcome Back'}
-          </h1>
-          <p className="text-zinc-500 text-center">
-            {isSignup ? 'Join us for a seamless shopping experience' : 'Login to start your seamless shopping experience'}
-          </p>
+          <h1 className="text-3xl font-bold text-zinc-900 mb-2">Welcome Back</h1>
+          <p className="text-zinc-500 text-center">Login to start your seamless shopping experience</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -106,24 +67,10 @@ export default function Login({ onLogin }: LoginProps) {
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               className="w-full px-6 py-4 bg-zinc-50 border border-zinc-100 rounded-2xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
-              placeholder="Choose a username"
+              placeholder="Enter your username"
               required
             />
           </div>
-
-          {isSignup && (
-            <div>
-              <label className="block text-xs font-bold uppercase tracking-widest text-zinc-400 mb-2 ml-1">Full Name</label>
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="w-full px-6 py-4 bg-zinc-50 border border-zinc-100 rounded-2xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
-                placeholder="Enter your full name"
-                required
-              />
-            </div>
-          )}
 
           <div>
             <label className="block text-xs font-bold uppercase tracking-widest text-zinc-400 mb-2 ml-1">Password</label>
@@ -155,31 +102,17 @@ export default function Login({ onLogin }: LoginProps) {
             ) : (
               <>
                 <LogIn className="w-5 h-5" />
-                <span>{isSignup ? 'Sign Up' : 'Sign In'}</span>
+                <span>Sign In</span>
               </>
             )}
           </motion.button>
         </form>
 
-        <div className="mt-8 text-center">
-          <button
-            onClick={() => {
-              setIsSignup(!isSignup);
-              setError('');
-            }}
-            className="text-emerald-600 font-bold text-sm hover:underline"
-          >
-            {isSignup ? 'Already have an account? Sign In' : "Don't have an account? Sign Up"}
-          </button>
+        <div className="mt-10 pt-8 border-t border-zinc-100 text-center">
+          <p className="text-zinc-400 text-sm">
+            Demo Credentials: <span className="font-mono text-zinc-600">bit197 / 1234</span>
+          </p>
         </div>
-
-        {!isSignup && (
-          <div className="mt-10 pt-8 border-t border-zinc-100 text-center">
-            <p className="text-zinc-400 text-sm">
-              Demo Credentials: <span className="font-mono text-zinc-600">bit197 / 1234</span>
-            </p>
-          </div>
-        )}
       </motion.div>
     </div>
   );
