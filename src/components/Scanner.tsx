@@ -14,12 +14,17 @@ export default function Scanner({ onProductScanned }: ScannerProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchId, setSearchId] = useState('');
+  const [showFileUpload, setShowFileUpload] = useState(false);
   const html5QrCodeRef = useRef<Html5Qrcode | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const fetchProduct = async (id: string) => {
     setLoading(true);
     setError(null);
     try {
+      // Clean up the ID (sometimes QR scanners add extra whitespace or prefixes)
+      const cleanId = id.trim().toUpperCase();
+      
       // Client-side fallback for demo products (useful for Vercel/Static deployments)
       const demoProducts: Record<string, Product> = {
         'CLOTH-001': { id: 'CLOTH-001', name: 'Tshirt', price: 999, image_url: 'https://picsum.photos/seed/tshirt/400/600', description: 'Comfortable cotton T-shirt.' },
@@ -29,22 +34,22 @@ export default function Scanner({ onProductScanned }: ScannerProps) {
         'CLOTH-005': { id: 'CLOTH-005', name: 'cargo', price: 1899, image_url: 'https://picsum.photos/seed/cargo/400/600', description: 'Multi-pocket cargo pants.' },
       };
 
-      if (demoProducts[id]) {
+      if (demoProducts[cleanId]) {
         // Simulate network delay
         await new Promise(resolve => setTimeout(resolve, 500));
-        onProductScanned(demoProducts[id]);
+        onProductScanned(demoProducts[cleanId]);
         setSearchId('');
         return true;
       }
 
-      const response = await fetch(`/api/products/${id}`);
+      const response = await fetch(`/api/products/${cleanId}`);
       if (response.ok) {
         const product = await response.json();
         onProductScanned(product);
         setSearchId('');
         return true;
       } else {
-        setError("Product not found. Check the ID and try again.");
+        setError(`Product "${cleanId}" not found. Check the ID and try again.`);
         return false;
       }
     } catch (err) {
@@ -52,6 +57,25 @@ export default function Scanner({ onProductScanned }: ScannerProps) {
       return false;
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const html5QrCode = new Html5Qrcode("qr-reader-hidden");
+      const decodedText = await html5QrCode.scanFile(file, true);
+      await fetchProduct(decodedText);
+    } catch (err) {
+      setError("Could not find a valid QR code in this image. Please try a clearer photo.");
+    } finally {
+      setLoading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
 
@@ -80,7 +104,18 @@ export default function Scanner({ onProductScanned }: ScannerProps) {
           const html5QrCode = new Html5Qrcode("reader");
           html5QrCodeRef.current = html5QrCode;
 
-          const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+          const config = { 
+            fps: 20, 
+            qrbox: (viewfinderWidth: number, viewfinderHeight: number) => {
+              const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
+              const qrboxSize = Math.floor(minEdge * 0.7);
+              return {
+                width: qrboxSize,
+                height: qrboxSize
+              };
+            },
+            aspectRatio: 1.0
+          };
 
           await html5QrCode.start(
             { facingMode: "environment" },
@@ -113,6 +148,9 @@ export default function Scanner({ onProductScanned }: ScannerProps) {
 
   return (
     <div className="flex flex-col items-center justify-center p-6 space-y-8 max-w-xl mx-auto">
+      {/* Hidden element for file scanning */}
+      <div id="qr-reader-hidden" className="hidden"></div>
+      
       {/* Search Bar */}
       <motion.form 
         initial={{ opacity: 0, y: -10 }}
@@ -145,52 +183,77 @@ export default function Scanner({ onProductScanned }: ScannerProps) {
         <div className="h-px bg-zinc-200 flex-1" />
       </div>
 
-      {!scanning ? (
-        <motion.button
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          onClick={() => setScanning(true)}
-          className="flex flex-col items-center justify-center w-full aspect-square max-w-[320px] bg-white border-2 border-dashed border-zinc-200 rounded-[3rem] hover:border-emerald-500 hover:bg-emerald-50/50 transition-all group relative overflow-hidden"
-        >
-          <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-          <div className="w-20 h-20 bg-zinc-50 rounded-3xl flex items-center justify-center mb-6 group-hover:bg-emerald-100 group-hover:scale-110 transition-all">
-            <QrCode className="w-10 h-10 text-zinc-400 group-hover:text-emerald-600" />
-          </div>
-          <span className="text-xl font-bold text-zinc-800 group-hover:text-emerald-700">Open QR Scanner</span>
-          <p className="text-zinc-400 text-sm mt-2">Scan the tag on the cloth</p>
-        </motion.button>
-      ) : (
-        <div className="w-full max-w-md bg-white rounded-[2.5rem] shadow-2xl overflow-hidden relative border border-zinc-100">
-          <div className="p-5 border-b flex justify-between items-center bg-zinc-50/50">
-            <div className="flex items-center space-x-2">
-              <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
-              <h3 className="font-bold text-zinc-800">Scanner Active</h3>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full">
+        {!scanning ? (
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={() => setScanning(true)}
+            className="flex flex-col items-center justify-center w-full aspect-square bg-white border-2 border-dashed border-zinc-200 rounded-[3rem] hover:border-emerald-500 hover:bg-emerald-50/50 transition-all group relative overflow-hidden"
+          >
+            <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+            <div className="w-16 h-16 bg-zinc-50 rounded-2xl flex items-center justify-center mb-4 group-hover:bg-emerald-100 group-hover:scale-110 transition-all">
+              <Camera className="w-8 h-8 text-zinc-400 group-hover:text-emerald-600" />
             </div>
-            <button 
-              onClick={stopScanner}
-              className="p-2 hover:bg-zinc-200 rounded-full transition-colors"
-            >
-              <X className="w-5 h-5 text-zinc-500" />
-            </button>
-          </div>
-          
-          <div id="reader" className="w-full aspect-square bg-black"></div>
-          
-          <AnimatePresence>
-            {loading && (
-              <motion.div 
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="absolute inset-0 bg-white/90 backdrop-blur-sm flex flex-col items-center justify-center z-10"
+            <span className="text-lg font-bold text-zinc-800 group-hover:text-emerald-700 text-center px-4">Live Camera Scanner</span>
+            <p className="text-zinc-400 text-xs mt-2">Scan tag in real-time</p>
+          </motion.button>
+        ) : (
+          <div className="col-span-1 sm:col-span-2 w-full bg-white rounded-[2.5rem] shadow-2xl overflow-hidden relative border border-zinc-100">
+            <div className="p-5 border-b flex justify-between items-center bg-zinc-50/50">
+              <div className="flex items-center space-x-2">
+                <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
+                <h3 className="font-bold text-zinc-800">Scanner Active</h3>
+              </div>
+              <button 
+                onClick={stopScanner}
+                className="p-2 hover:bg-zinc-200 rounded-full transition-colors"
               >
-                <Loader2 className="w-12 h-12 text-emerald-500 animate-spin mb-4" />
-                <p className="text-emerald-600 font-bold text-lg">Identifying Cloth...</p>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-      )}
+                <X className="w-5 h-5 text-zinc-500" />
+              </button>
+            </div>
+            
+            <div id="reader" className="w-full aspect-square bg-black"></div>
+            
+            <AnimatePresence>
+              {loading && (
+                <motion.div 
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="absolute inset-0 bg-white/90 backdrop-blur-sm flex flex-col items-center justify-center z-10"
+                >
+                  <Loader2 className="w-12 h-12 text-emerald-500 animate-spin mb-4" />
+                  <p className="text-emerald-600 font-bold text-lg">Identifying Cloth...</p>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        )}
+
+        {!scanning && (
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={() => fileInputRef.current?.click()}
+            className="flex flex-col items-center justify-center w-full aspect-square bg-white border-2 border-dashed border-zinc-200 rounded-[3rem] hover:border-emerald-500 hover:bg-emerald-50/50 transition-all group relative overflow-hidden"
+          >
+            <input 
+              type="file" 
+              ref={fileInputRef} 
+              className="hidden" 
+              accept="image/*" 
+              onChange={handleFileUpload}
+            />
+            <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+            <div className="w-16 h-16 bg-zinc-50 rounded-2xl flex items-center justify-center mb-4 group-hover:bg-emerald-100 group-hover:scale-110 transition-all">
+              <QrCode className="w-8 h-8 text-zinc-400 group-hover:text-emerald-600" />
+            </div>
+            <span className="text-lg font-bold text-zinc-800 group-hover:text-emerald-700 text-center px-4">Upload QR Image</span>
+            <p className="text-zinc-400 text-xs mt-2">Pick from gallery</p>
+          </motion.button>
+        )}
+      </div>
 
       {error && (
         <motion.div 
