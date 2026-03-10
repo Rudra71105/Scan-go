@@ -19,8 +19,12 @@ export default function Scanner({ onProductScanned }: ScannerProps) {
   const [selectedCameraId, setSelectedCameraId] = useState<string | null>(null);
   const html5QrCodeRef = useRef<Html5Qrcode | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const isProcessingRef = useRef(false);
 
   const fetchProduct = async (id: string) => {
+    if (isProcessingRef.current) return false;
+    isProcessingRef.current = true;
+    
     setLoading(true);
     setError(null);
     setLastScanned(id);
@@ -72,6 +76,10 @@ export default function Scanner({ onProductScanned }: ScannerProps) {
       return false;
     } finally {
       setLoading(false);
+      // Small cooldown to prevent double scans
+      setTimeout(() => {
+        isProcessingRef.current = false;
+      }, 1500);
     }
   };
 
@@ -119,6 +127,7 @@ export default function Scanner({ onProductScanned }: ScannerProps) {
       }
     }
     setScanning(false);
+    isProcessingRef.current = false;
   };
 
   useEffect(() => {
@@ -152,7 +161,7 @@ export default function Scanner({ onProductScanned }: ScannerProps) {
           html5QrCodeRef.current = html5QrCode;
 
           const config = { 
-            fps: 30, 
+            fps: 10, 
             qrbox: (viewfinderWidth: number, viewfinderHeight: number) => {
               const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
               return {
@@ -170,6 +179,7 @@ export default function Scanner({ onProductScanned }: ScannerProps) {
             cameraConfig,
             config,
             async (decodedText) => {
+              if (isProcessingRef.current) return;
               const success = await fetchProduct(decodedText);
               if (success) {
                 await stopScanner();
