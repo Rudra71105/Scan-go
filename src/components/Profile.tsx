@@ -41,7 +41,7 @@ export default function Profile({ user, onLogout }: ProfileProps) {
               </div>
               <div className="flex items-center justify-center md:justify-start space-x-2">
                 <MapPin className="w-4 h-4" />
-                <span className="text-sm">Mumbai, India</span>
+                <span className="text-sm">Jaipur, India</span>
               </div>
               <div className="flex items-center justify-center md:justify-start space-x-2">
                 <Calendar className="w-4 h-4" />
