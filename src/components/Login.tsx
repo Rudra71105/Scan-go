@@ -34,12 +34,17 @@ export default function Login({ onLogin }: LoginProps) {
           body: JSON.stringify({ username, password }),
         });
 
+        const contentType = response.headers.get('content-type');
         if (response.ok) {
           const data = await response.json();
           onLogin(data.user);
         } else {
-          const data = await response.json();
-          setError(data.message || 'Invalid username or password');
+          if (contentType && contentType.includes('application/json')) {
+            const data = await response.json();
+            setError(data.message || 'Invalid username or password');
+          } else {
+            setError(`Server error: ${response.status} ${response.statusText}`);
+          }
         }
       } else {
         const response = await fetch('/api/signup', {
@@ -48,16 +53,21 @@ export default function Login({ onLogin }: LoginProps) {
           body: JSON.stringify({ username, name, password }),
         });
 
+        const contentType = response.headers.get('content-type');
         if (response.ok) {
           const data = await response.json();
           onLogin(data.user);
         } else {
-          const data = await response.json();
-          setError(data.message || 'Signup failed');
+          if (contentType && contentType.includes('application/json')) {
+            const data = await response.json();
+            setError(data.message || 'Signup failed');
+          } else {
+            setError(`Server error: ${response.status} ${response.statusText}`);
+          }
         }
       }
-    } catch (err) {
-      setError('Something went wrong. Please try again.');
+    } catch (err: any) {
+      setError(`Connection error: ${err.message || 'Please check your internet'}`);
     } finally {
       setLoading(false);
     }
