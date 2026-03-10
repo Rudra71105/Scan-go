@@ -8,7 +8,9 @@ interface LoginProps {
 }
 
 export default function Login({ onLogin }: LoginProps) {
+  const [isSignup, setIsSignup] = useState(false);
   const [username, setUsername] = useState('');
+  const [name, setName] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -19,23 +21,40 @@ export default function Login({ onLogin }: LoginProps) {
     setError('');
 
     try {
-      // Client-side fallback for demo credentials (useful for Vercel/Static deployments)
-      if (username === 'bit197' && password === '1234') {
-        onLogin({ id: 'bit197', name: 'User 197' });
-        return;
-      }
+      if (!isSignup) {
+        // Client-side fallback for demo credentials (useful for Vercel/Static deployments)
+        if (username === 'bit197' && password === '1234') {
+          onLogin({ id: 'bit197', name: 'User 197' });
+          return;
+        }
 
-      const response = await fetch('/api/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password }),
-      });
+        const response = await fetch('/api/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password }),
+        });
 
-      if (response.ok) {
-        const data = await response.json();
-        onLogin(data.user);
+        if (response.ok) {
+          const data = await response.json();
+          onLogin(data.user);
+        } else {
+          const data = await response.json();
+          setError(data.message || 'Invalid username or password');
+        }
       } else {
-        setError('Invalid username or password');
+        const response = await fetch('/api/signup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, name, password }),
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          onLogin(data.user);
+        } else {
+          const data = await response.json();
+          setError(data.message || 'Signup failed');
+        }
       }
     } catch (err) {
       setError('Something went wrong. Please try again.');
@@ -55,8 +74,12 @@ export default function Login({ onLogin }: LoginProps) {
           <div className="w-16 h-16 bg-emerald-500 rounded-2xl flex items-center justify-center mb-6 shadow-lg shadow-emerald-200">
             <ShoppingBag className="w-8 h-8 text-white" />
           </div>
-          <h1 className="text-3xl font-bold text-zinc-900 mb-2">Welcome Back</h1>
-          <p className="text-zinc-500 text-center">Login to start your seamless shopping experience</p>
+          <h1 className="text-3xl font-bold text-zinc-900 mb-2">
+            {isSignup ? 'Create Account' : 'Welcome Back'}
+          </h1>
+          <p className="text-zinc-500 text-center">
+            {isSignup ? 'Join us for a seamless shopping experience' : 'Login to start your seamless shopping experience'}
+          </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -67,10 +90,24 @@ export default function Login({ onLogin }: LoginProps) {
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               className="w-full px-6 py-4 bg-zinc-50 border border-zinc-100 rounded-2xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
-              placeholder="Enter your username"
+              placeholder="Choose a username"
               required
             />
           </div>
+
+          {isSignup && (
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-widest text-zinc-400 mb-2 ml-1">Full Name</label>
+              <input
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="w-full px-6 py-4 bg-zinc-50 border border-zinc-100 rounded-2xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
+                placeholder="Enter your full name"
+                required
+              />
+            </div>
+          )}
 
           <div>
             <label className="block text-xs font-bold uppercase tracking-widest text-zinc-400 mb-2 ml-1">Password</label>
@@ -102,17 +139,31 @@ export default function Login({ onLogin }: LoginProps) {
             ) : (
               <>
                 <LogIn className="w-5 h-5" />
-                <span>Sign In</span>
+                <span>{isSignup ? 'Sign Up' : 'Sign In'}</span>
               </>
             )}
           </motion.button>
         </form>
 
-        <div className="mt-10 pt-8 border-t border-zinc-100 text-center">
-          <p className="text-zinc-400 text-sm">
-            Demo Credentials: <span className="font-mono text-zinc-600">bit197 / 1234</span>
-          </p>
+        <div className="mt-8 text-center">
+          <button
+            onClick={() => {
+              setIsSignup(!isSignup);
+              setError('');
+            }}
+            className="text-emerald-600 font-bold text-sm hover:underline"
+          >
+            {isSignup ? 'Already have an account? Sign In' : "Don't have an account? Sign Up"}
+          </button>
         </div>
+
+        {!isSignup && (
+          <div className="mt-10 pt-8 border-t border-zinc-100 text-center">
+            <p className="text-zinc-400 text-sm">
+              Demo Credentials: <span className="font-mono text-zinc-600">bit197 / 1234</span>
+            </p>
+          </div>
+        )}
       </motion.div>
     </div>
   );

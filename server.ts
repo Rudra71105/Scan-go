@@ -11,6 +11,13 @@ const db = new Database("shopping.db");
 
 // Initialize Database
 db.exec(`
+  CREATE TABLE IF NOT EXISTS users (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    password TEXT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
+
   CREATE TABLE IF NOT EXISTS products (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
@@ -48,12 +55,37 @@ async function startServer() {
   app.use(express.json());
 
   // API Routes
+  app.post("/api/signup", (req, res) => {
+    const { username, name, password } = req.body;
+    try {
+      const existingUser = db.prepare('SELECT * FROM users WHERE id = ?').get(username);
+      if (existingUser) {
+        return res.status(400).json({ success: false, message: "Username already exists" });
+      }
+      db.prepare('INSERT INTO users (id, name, password) VALUES (?, ?, ?)').run(username, name, password);
+      res.json({ success: true, user: { id: username, name } });
+    } catch (err) {
+      res.status(500).json({ success: false, message: "Server error during signup" });
+    }
+  });
+
   app.post("/api/login", (req, res) => {
     const { username, password } = req.body;
+    
+    // Legacy support for bit197
     if (username === "bit197" && password === "1234") {
-      res.json({ success: true, user: { id: "bit197", name: "User 197" } });
-    } else {
-      res.status(401).json({ success: false, message: "Invalid credentials" });
+      return res.json({ success: true, user: { id: "bit197", name: "User 197" } });
+    }
+
+    try {
+      const user = db.prepare('SELECT * FROM users WHERE id = ? AND password = ?').get(username, password);
+      if (user) {
+        res.json({ success: true, user: { id: user.id, name: user.name } });
+      } else {
+        res.status(401).json({ success: false, message: "Invalid credentials" });
+      }
+    } catch (err) {
+      res.status(500).json({ success: false, message: "Server error during login" });
     }
   });
 
