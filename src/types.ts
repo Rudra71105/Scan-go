@@ -14,3 +14,12 @@ export interface User {
   id: string;
   name: string;
 }
+
+export interface Order {
+  id: number;
+  user_id: string;
+  total: number;
+  items: string; // JSON string of CartItem[]
+  payment_method: string;
+  created_at: string;
+}

@@ -1,13 +1,13 @@
 import React from 'react';
 import { User, CartItem } from '../types';
-import { ShoppingBag, LogOut, QrCode, ShoppingCart, User as UserIcon } from 'lucide-react';
+import { ShoppingBag, LogOut, QrCode, ShoppingCart, User as UserIcon, History } from 'lucide-react';
 import { motion } from 'motion/react';
 
 interface NavbarProps {
   user: User;
   cartItems: CartItem[];
-  activeTab: 'scan' | 'cart';
-  setActiveTab: (tab: 'scan' | 'cart') => void;
+  activeTab: 'scan' | 'cart' | 'profile';
+  setActiveTab: (tab: 'scan' | 'cart' | 'profile') => void;
   onLogout: () => void;
 }
 
@@ -50,13 +50,24 @@ export default function Navbar({ user, cartItems, activeTab, setActiveTab, onLog
             )}
           </button>
 
+          <button 
+            onClick={() => setActiveTab('profile')}
+            className={`flex flex-col md:flex-row items-center space-y-1 md:space-y-0 md:space-x-2 px-4 py-2 rounded-2xl transition-all ${activeTab === 'profile' ? 'bg-emerald-50 text-emerald-600' : 'text-zinc-400 hover:text-zinc-600'}`}
+          >
+            <UserIcon className="w-6 h-6 md:w-5 md:h-5" />
+            <span className="text-[10px] md:text-sm font-bold uppercase tracking-wider md:tracking-normal md:capitalize">Profile</span>
+          </button>
+
           <div className="hidden md:flex items-center pl-8 border-l border-zinc-100 space-x-4">
-            <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 bg-zinc-100 rounded-full flex items-center justify-center">
-                <UserIcon className="w-4 h-4 text-zinc-500" />
+            <button 
+              onClick={() => setActiveTab('profile')}
+              className="flex items-center space-x-3 hover:bg-zinc-50 p-2 rounded-xl transition-all"
+            >
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${activeTab === 'profile' ? 'bg-emerald-500 text-white' : 'bg-zinc-100 text-zinc-500'}`}>
+                <UserIcon className="w-4 h-4" />
               </div>
-              <span className="text-sm font-medium text-zinc-700">{user.name}</span>
-            </div>
+              <span className={`text-sm font-medium transition-all ${activeTab === 'profile' ? 'text-emerald-600' : 'text-zinc-700'}`}>{user.name}</span>
+            </button>
             <button 
               onClick={onLogout}
               className="p-2 text-zinc-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"

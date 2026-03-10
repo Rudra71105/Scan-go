@@ -24,6 +24,7 @@ db.exec(`
     user_id TEXT NOT NULL,
     total REAL NOT NULL,
     items TEXT NOT NULL,
+    payment_method TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   );
 `);
@@ -66,9 +67,14 @@ async function startServer() {
   });
 
   app.post("/api/checkout", (req, res) => {
-    const { userId, total, items } = req.body;
-    const info = db.prepare('INSERT INTO orders (user_id, total, items) VALUES (?, ?, ?)').run(userId, total, JSON.stringify(items));
+    const { userId, total, items, paymentMethod } = req.body;
+    const info = db.prepare('INSERT INTO orders (user_id, total, items, payment_method) VALUES (?, ?, ?, ?)').run(userId, total, JSON.stringify(items), paymentMethod || 'Cash');
     res.json({ success: true, orderId: info.lastInsertRowid });
+  });
+
+  app.get("/api/orders/:userId", (req, res) => {
+    const orders = db.prepare('SELECT * FROM orders WHERE user_id = ? ORDER BY created_at DESC').all(req.params.userId);
+    res.json(orders);
   });
 
   // Vite middleware for development

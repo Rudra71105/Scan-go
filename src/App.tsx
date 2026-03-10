@@ -3,13 +3,14 @@ import { User, CartItem, Product } from './types';
 import Login from './components/Login';
 import Scanner from './components/Scanner';
 import Cart from './components/Cart';
+import Profile from './components/Profile';
 import Navbar from './components/Navbar';
 import { motion, AnimatePresence } from 'motion/react';
 
 export default function App() {
   const [user, setUser] = useState<User | null>(null);
   const [cart, setCart] = useState<CartItem[]>([]);
-  const [activeTab, setActiveTab] = useState<'scan' | 'cart'>('scan');
+  const [activeTab, setActiveTab] = useState<'scan' | 'cart' | 'profile'>('scan');
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   const [orderComplete, setOrderComplete] = useState(false);
 
@@ -66,15 +67,6 @@ export default function App() {
     setIsCheckingOut(true);
     
     try {
-      // Client-side fallback for demo checkout
-      if (paymentDetails.total > 0) {
-        // Simulate network delay
-        await new Promise(resolve => setTimeout(resolve, 1500));
-        setOrderComplete(true);
-        setCart([]);
-        return;
-      }
-
       const response = await fetch('/api/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -91,9 +83,35 @@ export default function App() {
       if (response.ok) {
         setOrderComplete(true);
         setCart([]);
+      } else {
+        // Fallback for Vercel/Static deployments
+        const newOrder = {
+          id: Date.now(),
+          user_id: user.id,
+          total: paymentDetails.total,
+          items: JSON.stringify(cart),
+          payment_method: paymentDetails.method || 'Cash',
+          created_at: new Date().toISOString()
+        };
+        const localOrders = JSON.parse(localStorage.getItem(`orders_${user.id}`) || '[]');
+        localStorage.setItem(`orders_${user.id}`, JSON.stringify([newOrder, ...localOrders]));
+        setOrderComplete(true);
+        setCart([]);
       }
     } catch (err) {
-      console.error("Checkout failed", err);
+      // Fallback for network errors
+      const newOrder = {
+        id: Date.now(),
+        user_id: user.id,
+        total: paymentDetails.total,
+        items: JSON.stringify(cart),
+        payment_method: paymentDetails.method || 'Cash',
+        created_at: new Date().toISOString()
+      };
+      const localOrders = JSON.parse(localStorage.getItem(`orders_${user.id}`) || '[]');
+      localStorage.setItem(`orders_${user.id}`, JSON.stringify([newOrder, ...localOrders]));
+      setOrderComplete(true);
+      setCart([]);
     } finally {
       setIsCheckingOut(false);
     }
@@ -129,7 +147,7 @@ export default function App() {
               </div>
               <Scanner onProductScanned={handleProductScanned} />
             </motion.div>
-          ) : (
+          ) : activeTab === 'cart' ? (
             <motion.div
               key="cart"
               initial={{ opacity: 0, y: 20 }}
@@ -144,6 +162,15 @@ export default function App() {
                 isCheckingOut={isCheckingOut}
                 orderComplete={orderComplete}
               />
+            </motion.div>
+          ) : (
+            <motion.div
+              key="profile"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+            >
+              <Profile user={user} onLogout={handleLogout} />
             </motion.div>
           )}
         </AnimatePresence>
