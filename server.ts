@@ -15,9 +15,20 @@ db.exec(`
   CREATE TABLE IF NOT EXISTS users (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
+    email TEXT,
     password TEXT NOT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   );
+
+  -- Add email column if it doesn't exist (for existing databases)
+  BEGIN;
+  SELECT CASE WHEN count(*) = 0 THEN
+    'ALTER TABLE users ADD COLUMN email TEXT;'
+  ELSE
+    'SELECT 1;'
+  END
+  FROM pragma_table_info('users') WHERE name = 'email';
+  COMMIT;
 
   CREATE TABLE IF NOT EXISTS products (
     id TEXT PRIMARY KEY,
@@ -50,8 +61,8 @@ const insertProduct = db.prepare('INSERT OR REPLACE INTO products (id, name, pri
 seedProducts.forEach(p => insertProduct.run(p.id, p.name, p.price, p.image_url, p.description));
 
 // Seed a default user for legacy support
-const insertUser = db.prepare('INSERT OR IGNORE INTO users (id, name, password) VALUES (?, ?, ?)');
-insertUser.run('bit197', 'User 197', '1234');
+const insertUser = db.prepare('INSERT OR REPLACE INTO users (id, name, email, password) VALUES (?, ?, ?, ?)');
+insertUser.run('bit197', 'Rudraksh Goyal', 'rudraksh@example.com', '1234');
 
 async function startServer() {
   const app = express();
@@ -61,7 +72,7 @@ async function startServer() {
 
   // API Routes
   app.post("/api/signup", (req, res) => {
-    const { userId, name, password } = req.body;
+    const { userId, name, email, password } = req.body;
     
     try {
       const existingUser = db.prepare('SELECT * FROM users WHERE id = ?').get(userId);
@@ -69,8 +80,8 @@ async function startServer() {
         return res.status(400).json({ success: false, message: "User ID already exists" });
       }
 
-      db.prepare('INSERT INTO users (id, name, password) VALUES (?, ?, ?)').run(userId, name, password);
-      res.json({ success: true, user: { id: userId, name } });
+      db.prepare('INSERT INTO users (id, name, email, password) VALUES (?, ?, ?, ?)').run(userId, name, email, password);
+      res.json({ success: true, user: { id: userId, name, email } });
     } catch (err) {
       res.status(500).json({ success: false, message: "Server error during signup" });
     }
@@ -82,7 +93,7 @@ async function startServer() {
     const user = db.prepare('SELECT * FROM users WHERE id = ? AND password = ?').get(username, password);
     
     if (user) {
-      return res.json({ success: true, user: { id: user.id, name: user.name } });
+      return res.json({ success: true, user: { id: user.id, name: user.name, email: user.email || '' } });
     }
 
     res.status(401).json({ success: false, message: "Invalid credentials" });

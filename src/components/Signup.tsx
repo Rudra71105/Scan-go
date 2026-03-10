@@ -10,6 +10,7 @@ interface SignupProps {
 
 export default function Signup({ onSignup, onBackToLogin }: SignupProps) {
   const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
   const [userId, setUserId] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -24,7 +25,7 @@ export default function Signup({ onSignup, onBackToLogin }: SignupProps) {
       const response = await fetch('/api/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, name, password }),
+        body: JSON.stringify({ userId, name, email, password }),
       });
 
       const data = await response.json();
@@ -73,6 +74,18 @@ export default function Signup({ onSignup, onBackToLogin }: SignupProps) {
               onChange={(e) => setName(e.target.value)}
               className="w-full px-6 py-4 bg-zinc-50 border border-zinc-100 rounded-2xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
               placeholder="Enter your name"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-widest text-zinc-400 mb-2 ml-1">Email Address</label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full px-6 py-4 bg-zinc-50 border border-zinc-100 rounded-2xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
+              placeholder="Enter your email"
               required
             />
           </div>

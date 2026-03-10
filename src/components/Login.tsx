@@ -22,7 +22,7 @@ export default function Login({ onLogin, onGoToSignup }: LoginProps) {
     try {
       // Client-side fallback for demo credentials (useful for Vercel/Static deployments)
       if (username === 'bit197' && password === '1234') {
-        onLogin({ id: 'bit197', name: 'User 197' });
+        onLogin({ id: 'bit197', name: 'Rudraksh Goyal', email: 'rudraksh@example.com' });
         return;
       }
 

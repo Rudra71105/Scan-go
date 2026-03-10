@@ -26,18 +26,19 @@ export default function Profile({ user, onLogout }: ProfileProps) {
           </div>
           
           <div className="flex-1 text-center md:text-left">
-            <div className="flex flex-col md:flex-row md:items-center gap-3 mb-4">
+            <div className="flex flex-col md:flex-row md:items-center gap-3 mb-1">
               <h1 className="text-4xl font-bold text-zinc-900">{user.name}</h1>
               <div className="inline-flex items-center px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs font-bold uppercase tracking-wider">
                 <ShieldCheck className="w-3 h-3 mr-1" />
                 Verified Member
               </div>
             </div>
+            <p className="text-zinc-400 text-sm mb-4 font-mono">@{user.id}</p>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-zinc-500">
               <div className="flex items-center justify-center md:justify-start space-x-2">
                 <Mail className="w-4 h-4" />
-                <span className="text-sm">{user.id}@scanandgo.com</span>
+                <span className="text-sm">{user.email}</span>
               </div>
               <div className="flex items-center justify-center md:justify-start space-x-2">
                 <MapPin className="w-4 h-4" />
