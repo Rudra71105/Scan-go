@@ -22,10 +22,11 @@ export default function Scanner({ onProductScanned }: ScannerProps) {
     try {
       // Client-side fallback for demo products (useful for Vercel/Static deployments)
       const demoProducts: Record<string, Product> = {
-        'CLOTH-001': { id: 'CLOTH-001', name: 'Premium Polo T-shirt', price: 1499, image_url: 'https://picsum.photos/seed/polo/400/600', description: 'Classic fit premium cotton polo t-shirt.' },
-        'CLOTH-002': { id: 'CLOTH-002', name: 'Vintage Denim Jacket', price: 4499, image_url: 'https://picsum.photos/seed/denim-jacket/400/600', description: 'Vintage wash denim jacket with metal buttons.' },
-        'CLOTH-003': { id: 'CLOTH-003', name: 'Classic Blue Jeans', price: 2499, image_url: 'https://picsum.photos/seed/jeans/400/600', description: 'Durable and stylish classic blue denim jeans.' },
-        'CLOTH-004': { id: 'CLOTH-004', name: 'Oversized Hoodie', price: 1999, image_url: 'https://picsum.photos/seed/hoodie/400/600', description: 'Warm and cozy oversized cotton hoodie.' },
+        'CLOTH-001': { id: 'CLOTH-001', name: 'Tshirt', price: 999, image_url: 'https://picsum.photos/seed/tshirt/400/600', description: 'Comfortable cotton T-shirt.' },
+        'CLOTH-002': { id: 'CLOTH-002', name: 'shirt', price: 1299, image_url: 'https://picsum.photos/seed/shirt/400/600', description: 'Formal button-down shirt.' },
+        'CLOTH-003': { id: 'CLOTH-003', name: 'denim jeans', price: 2499, image_url: 'https://picsum.photos/seed/jeans/400/600', description: 'Classic blue denim jeans.' },
+        'CLOTH-004': { id: 'CLOTH-004', name: 'socks', price: 299, image_url: 'https://picsum.photos/seed/socks/400/600', description: 'Soft cotton socks.' },
+        'CLOTH-005': { id: 'CLOTH-005', name: 'cargo', price: 1899, image_url: 'https://picsum.photos/seed/cargo/400/600', description: 'Multi-pocket cargo pants.' },
       };
 
       if (demoProducts[id]) {
@@ -219,7 +220,7 @@ export default function Scanner({ onProductScanned }: ScannerProps) {
           <span className="text-[10px] uppercase tracking-widest font-bold text-zinc-400">Quick Test IDs</span>
         </div>
         <div className="flex flex-wrap gap-2">
-          {['CLOTH-001', 'CLOTH-002', 'CLOTH-003', 'CLOTH-004'].map(id => (
+          {['CLOTH-001', 'CLOTH-002', 'CLOTH-003', 'CLOTH-004', 'CLOTH-005'].map(id => (
             <button 
               key={id}
               onClick={() => fetchProduct(id)}

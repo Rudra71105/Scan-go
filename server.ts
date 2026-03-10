@@ -20,16 +20,6 @@ db.exec(`
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   );
 
-  -- Add email column if it doesn't exist (for existing databases)
-  BEGIN;
-  SELECT CASE WHEN count(*) = 0 THEN
-    'ALTER TABLE users ADD COLUMN email TEXT;'
-  ELSE
-    'SELECT 1;'
-  END
-  FROM pragma_table_info('users') WHERE name = 'email';
-  COMMIT;
-
   CREATE TABLE IF NOT EXISTS products (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
@@ -48,12 +38,20 @@ db.exec(`
   );
 `);
 
+// Migration: Add email column if it doesn't exist
+try {
+  db.exec('ALTER TABLE users ADD COLUMN email TEXT');
+} catch (e) {
+  // Column might already exist, ignore error
+}
+
 // Seed Data
 const seedProducts = [
-  { id: 'CLOTH-001', name: 'Premium Polo T-shirt', price: 1499, image_url: 'https://picsum.photos/seed/polo/400/600', description: 'Classic fit premium cotton polo t-shirt.' },
-  { id: 'CLOTH-002', name: 'Vintage Denim Jacket', price: 4499, image_url: 'https://picsum.photos/seed/denim-jacket/400/600', description: 'Vintage wash denim jacket with metal buttons.' },
-  { id: 'CLOTH-003', name: 'Classic Blue Jeans', price: 2499, image_url: 'https://picsum.photos/seed/jeans/400/600', description: 'Durable and stylish classic blue denim jeans.' },
-  { id: 'CLOTH-004', name: 'Oversized Hoodie', price: 1999, image_url: 'https://picsum.photos/seed/hoodie/400/600', description: 'Warm and cozy oversized cotton hoodie.' },
+  { id: 'CLOTH-001', name: 'Tshirt', price: 999, image_url: 'https://picsum.photos/seed/tshirt/400/600', description: 'Comfortable cotton T-shirt.' },
+  { id: 'CLOTH-002', name: 'shirt', price: 1299, image_url: 'https://picsum.photos/seed/shirt/400/600', description: 'Formal button-down shirt.' },
+  { id: 'CLOTH-003', name: 'denim jeans', price: 2499, image_url: 'https://picsum.photos/seed/jeans/400/600', description: 'Classic blue denim jeans.' },
+  { id: 'CLOTH-004', name: 'socks', price: 299, image_url: 'https://picsum.photos/seed/socks/400/600', description: 'Soft cotton socks.' },
+  { id: 'CLOTH-005', name: 'cargo', price: 1899, image_url: 'https://picsum.photos/seed/cargo/400/600', description: 'Multi-pocket cargo pants.' },
 ];
 
 // Use REPLACE instead of INSERT OR IGNORE to update existing data if needed
