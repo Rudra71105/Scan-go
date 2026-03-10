@@ -80,6 +80,12 @@ export default function Login({ onLogin }: LoginProps) {
         animate={{ opacity: 1, y: 0 }}
         className="w-full max-w-md bg-white rounded-[2.5rem] shadow-xl shadow-zinc-200/50 p-8 md:p-12 border border-zinc-100"
       >
+        {window.location.hostname.includes('vercel.app') && (
+          <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-2xl text-amber-800 text-sm font-medium">
+            ⚠️ You are using a Vercel preview which doesn't support the backend database. 
+            Please use the <a href="https://ais-dev-vmvt22ys2kskk54jrvmahu-229531018389.asia-east1.run.app" className="underline font-bold">Official App URL</a> for signup/login to work.
+          </div>
+        )}
         <div className="flex flex-col items-center mb-10">
           <div className="w-16 h-16 bg-emerald-500 rounded-2xl flex items-center justify-center mb-6 shadow-lg shadow-emerald-200">
             <ShoppingBag className="w-8 h-8 text-white" />
