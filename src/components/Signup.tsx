@@ -1,15 +1,16 @@
 import React, { useState } from 'react';
 import { User } from '../types';
-import { LogIn, Loader2, ShoppingBag } from 'lucide-react';
+import { UserPlus, Loader2, ShoppingBag, ArrowLeft } from 'lucide-react';
 import { motion } from 'motion/react';
 
-interface LoginProps {
-  onLogin: (user: User) => void;
-  onGoToSignup: () => void;
+interface SignupProps {
+  onSignup: (user: User) => void;
+  onBackToLogin: () => void;
 }
 
-export default function Login({ onLogin, onGoToSignup }: LoginProps) {
-  const [username, setUsername] = useState('');
+export default function Signup({ onSignup, onBackToLogin }: SignupProps) {
+  const [name, setName] = useState('');
+  const [userId, setUserId] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -20,23 +21,18 @@ export default function Login({ onLogin, onGoToSignup }: LoginProps) {
     setError('');
 
     try {
-      // Client-side fallback for demo credentials (useful for Vercel/Static deployments)
-      if (username === 'bit197' && password === '1234') {
-        onLogin({ id: 'bit197', name: 'User 197' });
-        return;
-      }
-
-      const response = await fetch('/api/login', {
+      const response = await fetch('/api/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify({ userId, name, password }),
       });
 
+      const data = await response.json();
+
       if (response.ok) {
-        const data = await response.json();
-        onLogin(data.user);
+        onSignup(data.user);
       } else {
-        setError('Invalid username or password');
+        setError(data.message || 'Signup failed');
       }
     } catch (err) {
       setError('Something went wrong. Please try again.');
@@ -52,23 +48,43 @@ export default function Login({ onLogin, onGoToSignup }: LoginProps) {
         animate={{ opacity: 1, y: 0 }}
         className="w-full max-w-md bg-white rounded-[2.5rem] shadow-xl shadow-zinc-200/50 p-8 md:p-12 border border-zinc-100"
       >
+        <button 
+          onClick={onBackToLogin}
+          className="flex items-center text-zinc-400 hover:text-zinc-600 mb-6 transition-colors"
+        >
+          <ArrowLeft className="w-4 h-4 mr-2" />
+          <span className="text-sm font-medium">Back to Login</span>
+        </button>
+
         <div className="flex flex-col items-center mb-10">
           <div className="w-16 h-16 bg-emerald-500 rounded-2xl flex items-center justify-center mb-6 shadow-lg shadow-emerald-200">
             <ShoppingBag className="w-8 h-8 text-white" />
           </div>
-          <h1 className="text-3xl font-bold text-zinc-900 mb-2">Welcome Back</h1>
-          <p className="text-zinc-500 text-center">Login to start your seamless shopping experience</p>
+          <h1 className="text-3xl font-bold text-zinc-900 mb-2">Create Account</h1>
+          <p className="text-zinc-500 text-center">Join Scan & Go for a faster shopping experience</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
-            <label className="block text-xs font-bold uppercase tracking-widest text-zinc-400 mb-2 ml-1">Username</label>
+            <label className="block text-xs font-bold uppercase tracking-widest text-zinc-400 mb-2 ml-1">Full Name</label>
             <input
               type="text"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              value={name}
+              onChange={(e) => setName(e.target.value)}
               className="w-full px-6 py-4 bg-zinc-50 border border-zinc-100 rounded-2xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
-              placeholder="Enter your username"
+              placeholder="Enter your name"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-widest text-zinc-400 mb-2 ml-1">User ID</label>
+            <input
+              type="text"
+              value={userId}
+              onChange={(e) => setUserId(e.target.value)}
+              className="w-full px-6 py-4 bg-zinc-50 border border-zinc-100 rounded-2xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
+              placeholder="Choose a unique ID"
               required
             />
           </div>
@@ -80,7 +96,7 @@ export default function Login({ onLogin, onGoToSignup }: LoginProps) {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="w-full px-6 py-4 bg-zinc-50 border border-zinc-100 rounded-2xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all"
-              placeholder="Enter your password"
+              placeholder="Create a password"
               required
             />
           </div>
@@ -102,27 +118,12 @@ export default function Login({ onLogin, onGoToSignup }: LoginProps) {
               <Loader2 className="w-5 h-5 animate-spin" />
             ) : (
               <>
-                <LogIn className="w-5 h-5" />
-                <span>Sign In</span>
+                <UserPlus className="w-5 h-5" />
+                <span>Sign Up</span>
               </>
             )}
           </motion.button>
         </form>
-
-        <div className="mt-10 pt-8 border-t border-zinc-100 text-center space-y-4">
-          <p className="text-zinc-500 text-sm">
-            Don't have an account?{' '}
-            <button 
-              onClick={onGoToSignup}
-              className="text-emerald-600 font-bold hover:underline"
-            >
-              Create Account
-            </button>
-          </p>
-          <p className="text-zinc-400 text-xs">
-            Demo Credentials: <span className="font-mono text-zinc-600">bit197 / 1234</span>
-          </p>
-        </div>
       </motion.div>
     </div>
   );

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { User, CartItem, Product } from './types';
 import Login from './components/Login';
+import Signup from './components/Signup';
 import Scanner from './components/Scanner';
 import Cart from './components/Cart';
 import Profile from './components/Profile';
@@ -9,6 +10,7 @@ import { motion, AnimatePresence } from 'motion/react';
 
 export default function App() {
   const [user, setUser] = useState<User | null>(null);
+  const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
   const [cart, setCart] = useState<CartItem[]>([]);
   const [activeTab, setActiveTab] = useState<'scan' | 'cart' | 'profile'>('scan');
   const [isCheckingOut, setIsCheckingOut] = useState(false);
@@ -118,7 +120,11 @@ export default function App() {
   };
 
   if (!user) {
-    return <Login onLogin={handleLogin} />;
+    return authMode === 'login' ? (
+      <Login onLogin={handleLogin} onGoToSignup={() => setAuthMode('signup')} />
+    ) : (
+      <Signup onSignup={handleLogin} onBackToLogin={() => setAuthMode('login')} />
+    );
   }
 
   return (

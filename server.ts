@@ -12,6 +12,13 @@ const db = new Database("shopping.db");
 
 // Initialize Database
 db.exec(`
+  CREATE TABLE IF NOT EXISTS users (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    password TEXT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
+
   CREATE TABLE IF NOT EXISTS products (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
@@ -42,19 +49,40 @@ const seedProducts = [
 const insertProduct = db.prepare('INSERT OR REPLACE INTO products (id, name, price, image_url, description) VALUES (?, ?, ?, ?, ?)');
 seedProducts.forEach(p => insertProduct.run(p.id, p.name, p.price, p.image_url, p.description));
 
+// Seed a default user for legacy support
+const insertUser = db.prepare('INSERT OR IGNORE INTO users (id, name, password) VALUES (?, ?, ?)');
+insertUser.run('bit197', 'User 197', '1234');
+
 async function startServer() {
   const app = express();
-  const PORT = process.env.PORT || 3000;
+  const PORT = parseInt(process.env.PORT || "3000", 10);
 
   app.use(express.json());
 
   // API Routes
+  app.post("/api/signup", (req, res) => {
+    const { userId, name, password } = req.body;
+    
+    try {
+      const existingUser = db.prepare('SELECT * FROM users WHERE id = ?').get(userId);
+      if (existingUser) {
+        return res.status(400).json({ success: false, message: "User ID already exists" });
+      }
+
+      db.prepare('INSERT INTO users (id, name, password) VALUES (?, ?, ?)').run(userId, name, password);
+      res.json({ success: true, user: { id: userId, name } });
+    } catch (err) {
+      res.status(500).json({ success: false, message: "Server error during signup" });
+    }
+  });
+
   app.post("/api/login", (req, res) => {
     const { username, password } = req.body;
     
-    // Legacy support for bit197
-    if (username === "bit197" && password === "1234") {
-      return res.json({ success: true, user: { id: "bit197", name: "User 197" } });
+    const user = db.prepare('SELECT * FROM users WHERE id = ? AND password = ?').get(username, password);
+    
+    if (user) {
+      return res.json({ success: true, user: { id: user.id, name: user.name } });
     }
 
     res.status(401).json({ success: false, message: "Invalid credentials" });
