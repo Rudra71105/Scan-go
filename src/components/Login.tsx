@@ -39,7 +39,16 @@ export default function Login({ onLogin, onGoToSignup }: LoginProps) {
         setError('Invalid username or password');
       }
     } catch (err) {
-      setError('Something went wrong. Please try again.');
+      // Fallback for static deployments (like Vercel)
+      console.log('Login API failed, checking localStorage');
+      const localUsers = JSON.parse(localStorage.getItem('local_users') || '{}');
+      const user = localUsers[username];
+      
+      if (user && user.password === password) {
+        onLogin({ id: user.id, name: user.name, email: user.email });
+      } else {
+        setError('Invalid username or password');
+      }
     } finally {
       setLoading(false);
     }

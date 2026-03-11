@@ -28,15 +28,30 @@ export default function Signup({ onSignup, onBackToLogin }: SignupProps) {
         body: JSON.stringify({ userId, name, email, password }),
       });
 
-      const data = await response.json();
-
       if (response.ok) {
+        const data = await response.json();
         onSignup(data.user);
       } else {
+        const data = await response.json().catch(() => ({}));
         setError(data.message || 'Signup failed');
       }
     } catch (err) {
-      setError('Something went wrong. Please try again.');
+      // Fallback for static deployments (like Vercel)
+      console.log('Signup API failed, using localStorage fallback');
+      
+      const localUsers = JSON.parse(localStorage.getItem('local_users') || '{}');
+      
+      if (localUsers[userId]) {
+        setError('User ID already exists');
+        setLoading(false);
+        return;
+      }
+
+      const newUser = { id: userId, name, email, password };
+      localUsers[userId] = newUser;
+      localStorage.setItem('local_users', JSON.stringify(localUsers));
+      
+      onSignup({ id: userId, name, email });
     } finally {
       setLoading(false);
     }
