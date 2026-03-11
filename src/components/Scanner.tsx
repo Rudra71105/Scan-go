@@ -47,7 +47,7 @@ export default function Scanner({ onProductScanned }: ScannerProps) {
         'Product-2': { id: 'Product-2', name: 'shirt', price: 1299, image_url: 'https://images.unsplash.com/photo-1589310243389-96a5483213a8?auto=format&fit=crop&q=80&w=800', description: 'Formal button-down shirt.' },
         'Product-3': { id: 'Product-3', name: 'denim jeans', price: 2499, image_url: 'https://images.unsplash.com/photo-1542272604-787c3835535d?auto=format&fit=crop&q=80&w=800', description: 'Classic blue denim jeans.' },
         'Product-4': { id: 'Product-4', name: 'socks', price: 299, image_url: 'https://images.unsplash.com/photo-1586350977771-b3b0abd50c82?auto=format&fit=crop&q=80&w=800', description: 'Soft cotton socks.' },
-        'Product-5': { id: 'Product-5', name: 'cargo', price: 1899, image_url: 'https://images.unsplash.com/photo-1617113930975-f9c7243ae527?auto=format&fit=crop&q=80&w=800', description: 'Multi-pocket cargo pants.' },
+        'Product-5': { id: 'Product-5', name: 'cargo', price: 1899, image_url: 'https://images.unsplash.com/photo-1621072156002-e2fcced0b170?auto=format&fit=crop&q=80&w=800', description: 'Multi-pocket cargo pants.' },
       };
 
       if (demoProducts[cleanId]) {

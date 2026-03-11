@@ -148,6 +148,7 @@ export default function OrderHistory({ user }: OrderHistoryProps) {
                 </div>
                 <p className="text-sm font-bold text-zinc-700">
                   {new Date(order.created_at).toLocaleString('en-IN', {
+                    timeZone: 'Asia/Kolkata',
                     dateStyle: 'medium',
                     timeStyle: 'short'
                   })}
@@ -232,6 +233,7 @@ export default function OrderHistory({ user }: OrderHistoryProps) {
                         <h3 className="font-bold text-zinc-800">Order #{order.id.toString().padStart(6, '0')}</h3>
                         <p className="text-xs text-zinc-400">
                           {new Date(order.created_at).toLocaleDateString('en-IN', { 
+                            timeZone: 'Asia/Kolkata',
                             day: 'numeric', 
                             month: 'short', 
                             year: 'numeric' 

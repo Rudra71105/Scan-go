@@ -48,11 +48,11 @@ export default function Cart({ items, onUpdateQuantity, onRemove, onCheckout, is
 
   const handleApplyCoupon = () => {
     setCouponError(null);
-    const code = couponInput.trim().toLowerCase();
+    const code = couponInput.trim().toUpperCase();
     
-    if (code === 'qwertyiopasdfghjkl') {
-      setDiscount(subtotal * 0.2); // 20% discount for this long code
-      setAppliedCoupon('qwertyiopasdfghjkl');
+    if (code === 'BIT500') {
+      setDiscount(500); 
+      setAppliedCoupon('BIT500');
       setCouponInput('');
     } else {
       setCouponError('This coupon code is not applicable');
@@ -78,6 +78,12 @@ export default function Cart({ items, onUpdateQuantity, onRemove, onCheckout, is
   };
 
   if (orderComplete) {
+    const completionTime = new Date().toLocaleString('en-IN', {
+      timeZone: 'Asia/Kolkata',
+      dateStyle: 'medium',
+      timeStyle: 'short'
+    });
+
     return (
       <motion.div 
         initial={{ opacity: 0, scale: 0.9 }}
@@ -88,7 +94,13 @@ export default function Cart({ items, onUpdateQuantity, onRemove, onCheckout, is
           <CheckCircle2 className="w-12 h-12 text-emerald-500" />
         </div>
         <h2 className="text-3xl font-bold text-zinc-900 mb-2">Payment Successful!</h2>
-        <p className="text-zinc-500 mb-8">Your order has been placed. You can now leave the store with your items.</p>
+        <p className="text-zinc-500 mb-4">Your order has been placed. You can now leave the store with your items.</p>
+        
+        <div className="bg-zinc-50 px-6 py-3 rounded-2xl border border-zinc-100 mb-8">
+          <p className="text-xs font-bold text-zinc-400 uppercase tracking-widest mb-1">Order Completed At (IST)</p>
+          <p className="text-lg font-bold text-zinc-800">{completionTime}</p>
+        </div>
+
         <button 
           onClick={() => window.location.reload()}
           className="px-8 py-4 bg-zinc-900 text-white rounded-2xl font-bold hover:bg-zinc-800 transition-all shadow-xl shadow-zinc-200"
@@ -235,7 +247,7 @@ export default function Cart({ items, onUpdateQuantity, onRemove, onCheckout, is
                         setCouponInput(e.target.value);
                         if (couponError) setCouponError(null);
                       }}
-                      placeholder="Enter code (qwerty...)"
+                      placeholder="Enter code (BIT500)"
                       className="flex-1 px-4 py-3 bg-zinc-50 border border-zinc-100 rounded-xl focus:outline-none focus:border-emerald-500 transition-all text-sm font-medium"
                     />
                     <button 
